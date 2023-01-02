@@ -88,10 +88,10 @@ class Video:
             frame_id = 1
             while read:
                 if (frame_id - 1) % (self.args.skip_frames + 1) == 0:
-                    if self.ratio < 1:
-                        frame = cv2.resize(frame, self.target_size)
+                    # if self.ratio < 1:
+                    #     frame = cv2.resize(frame, self.target_size)
                     output_filepath = output_dir / f'{frame_id:06d}{self.images_extension}'
-                    cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
+                    # cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
                     image_id = image_id_offset + frame_count
                     di = {'id': image_id,
                           'video_id': video_id,
@@ -161,9 +161,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', default='dataset', help='path to directory containing raw_data')
-    parser.add_argument('--max-width', type=int, default=1920, help='maximum width of images')
-    parser.add_argument('--skip-frames', type=int, default=8, help='number of frames to skip between images')
-    parser.add_argument('--quality', type=int, default=90, help='level of quality when saving JPEG images')
+    parser.add_argument('--max-width', type=int, default=3840, help='maximum width of images')
+    parser.add_argument('--skip-frames', type=int, default=3, help='number of frames to skip between images')
+    parser.add_argument('--quality', type=int, default=100, help='level of quality when saving JPEG images')
     args = parser.parse_args()
 
     data_dir = pathlib.Path(args.data_dir)

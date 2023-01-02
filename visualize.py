@@ -22,7 +22,7 @@ if __name__ == '__main__':
     config.read(args.video_dir / 'info.ini')
     sequence = config['Sequence']
 
-    images = [args.video_dir / 'images' / filepath for filepath in sorted(os.listdir(args.video_dir / 'images'))]
+    images = [args.video_dir / 'img1' / filepath for filepath in sorted(os.listdir(args.video_dir / 'img1'))]
     columns = ('frame', 'id', 'left', 'top', 'width', 'height', 'confidence', 'X', 'Y', 'Z')
     filepath = os.path.join('pred', 'pred.txt') if args.predictions else os.path.join('gt', 'gt.txt')
     annotations = pd.read_csv(args.video_dir / filepath, names=columns, header=None)

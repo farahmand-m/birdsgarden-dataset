@@ -12,6 +12,7 @@ import tqdm.auto as tqdm
 # noinspection PyAttributeOutsideInit
 class Video:
     video_filename = 'video.mp4'
+    bounds_filename = 'info.json'
     annotations_filename = 'gt.xml'
     images_dir_name = 'img1'
     images_extension = '.jpg'
@@ -23,6 +24,7 @@ class Video:
         self.target_dir = target_dir
         self.destination = destination
         self.load_video(source_dir / self.video_filename)
+        self.load_bounds(source_dir / self.bounds_filename)
         self.load_annotations(source_dir / self.annotations_filename)
 
     @property
@@ -39,13 +41,13 @@ class Video:
         self.height = int(self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.num_frames = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        self.ratio = min(args.max_width / self.width, 1)
-        self.target_width = int(self.width * self.ratio)
-        self.target_height = int(self.height * self.ratio)
+        self.patch_size = args.patch_size
+        self.p_width, self.p_height = args.patch_size
 
-    @property
-    def target_size(self):
-        return self.target_width, self.target_height
+    def load_bounds(self, filepath):
+        with open(filepath) as streamn:
+            info = json.load(streamn)
+            self.bounds = info['bound']
 
     def load_annotations(self, filepath):
         if not filepath.exists():
@@ -65,8 +67,8 @@ class Video:
         info['Sequence'] = {
             'Name': self.video_name,
             'SeqLength': self.num_frames,
-            'ImWidth': self.target_width,
-            'ImHeight': self.target_height,
+            'ImWidth': self.p_width,
+            'ImHeight': self.p_height,
             'ImDir': self.images_dir_name,
             'ImExt': self.images_extension,
             'FrameRate': self.frame_rate / (self.args.skip_frames + 1),
@@ -82,22 +84,20 @@ class Video:
         output_dir = self.target_dir / self.images_dir_name
         os.makedirs(output_dir, exist_ok=True)
 
-        with tqdm.tqdm(total=self.num_frames, desc='* Frames') as progress:
+        with tqdm.tqdm(total=self.num_frames, desc='* Frames', leave=False) as progress:
             read, frame = self.capture.read()
             frame_count = 1
             frame_id = 1
             while read:
                 if (frame_id - 1) % (self.args.skip_frames + 1) == 0:
-                    # if self.ratio < 1:
-                    #     frame = cv2.resize(frame, self.target_size)
                     output_filepath = output_dir / f'{frame_id:06d}{self.images_extension}'
-                    # cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
+                    cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
                     image_id = image_id_offset + frame_count
                     di = {'id': image_id,
                           'video_id': video_id,
                           'frame_id': frame_count,
                           'file_name': str(output_filepath.relative_to(self.target_dir.parent)),
-                          'width': self.target_width, 'height': self.target_height}
+                          'width': self.p_width, 'height': self.p_height}
                     self.image_ids[frame_id] = image_id
                     frames.append(di)
                     frame_count += 1
@@ -109,6 +109,7 @@ class Video:
         return frames
 
     def extract_boxes(self, track_id_offset, box_id_offset):
+        x_min, x_max, y_min, y_max = self.bounds
         boxes = []
 
         if self.annotations is not None:
@@ -119,7 +120,7 @@ class Video:
             with open(output_dir / 'gt.txt', 'w') as stream:
                 box_id = 1
                 track_id = 1
-                for element in tqdm.tqdm(self.annotations, desc='* Tracks'):
+                for element in tqdm.tqdm(self.annotations, desc='* Tracks', leave=False):
                     if element.tag == 'track':
                         had_at_least_one = False
                         for child in element:
@@ -130,12 +131,16 @@ class Video:
                                     left, top = float(attributes['xtl']), float(attributes['ytl'])
                                     right, bottom = float(attributes['xbr']), float(attributes['ybr'])
                                     assert right > left and bottom > top, 'Invalid Bounding Box'
+                                    # Make sure it is within current patch.
+                                    left, top = left - x_min, top - y_min
+                                    right, bottom = right - x_min, bottom - y_min
+                                    if not ((left > 0 and top > 0) or (right > 0 and bottom > 0)):
+                                        continue  # Neither the top-left-most nor the right-bottom-most pixel are within the patch.
                                     width, height = right - left, bottom - top
                                     bounding_box = left, top, width, height
-                                    bounding_box = (el * self.ratio for el in bounding_box)
                                     bounding_box = (round(el) for el in bounding_box)
                                     bounding_box = tuple(bounding_box)
-                                    area = round(width * height * self.ratio ** 2)
+                                    area = round(width * height)
                                     rest = 1, 0, 0, 0  # Confidence, 3D Coordinates
                                     line = frame_id, track_id, *bounding_box, *rest
                                     line = ','.join(str(el) for el in line)
@@ -161,14 +166,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', default='dataset', help='path to directory containing raw_data')
-    parser.add_argument('--max-width', type=int, default=3840, help='maximum width of images')
     parser.add_argument('--skip-frames', type=int, default=3, help='number of frames to skip between images')
     parser.add_argument('--quality', type=int, default=100, help='level of quality when saving JPEG images')
+    parser.add_argument('--patch-size', nargs=2, type=int, default=(640, 480), help='desired patch size')
     args = parser.parse_args()
 
     data_dir = pathlib.Path(args.data_dir)
-    source = data_dir / 'raw_data'
-    destination = data_dir / 'mot-like'
+    source = data_dir / 'patched-raw-data'
+    destination = data_dir / 'patched-mot-like'
 
     # noinspection PyTypeChecker
     directories = {split: os.listdir(source / split) for split in os.listdir(source)}
@@ -189,8 +194,7 @@ if __name__ == '__main__':
         current_boxes_index = 0
         current_track_index = 0
 
-        for video in videos:
-            print('Processing', video)
+        for video in tqdm.tqdm(videos, desc=subset):
 
             source_dir = source / subset / video
             target_dir = destination / subset / video

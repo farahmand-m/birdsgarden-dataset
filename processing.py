@@ -88,15 +88,15 @@ class Video:
             frame_id = 1
             while read:
                 if (frame_id - 1) % (self.args.skip_frames + 1) == 0:
-                    if self.ratio < 1:
-                        frame = cv2.resize(frame, self.target_size)
+                    # if self.ratio < 1:
+                    #     frame = cv2.resize(frame, self.target_size)
                     output_filepath = output_dir / f'{frame_id:06d}{self.images_extension}'
-                    cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
+                    # cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
                     image_id = image_id_offset + frame_count
                     di = {'id': image_id,
                           'video_id': video_id,
                           'frame_id': frame_count,
-                          'file_name': str(output_filepath.relative_to(self.destination)),
+                          'file_name': str(output_filepath.relative_to(self.target_dir.parent)),
                           'width': self.target_width, 'height': self.target_height}
                     self.image_ids[frame_id] = image_id
                     frames.append(di)
@@ -180,6 +180,8 @@ if __name__ == '__main__':
 
     for subset, videos in directories.items():
 
+        videos_li = [{'id': index + 1, 'file_name': video} for index, video in enumerate(videos)]
+
         images_li, annotations_li = [], []
 
         current_video_index = 0
@@ -207,5 +209,5 @@ if __name__ == '__main__':
             current_track_index += num_tracks
 
         with open(coco_ann_dir / f'{subset}.json', 'w') as stream:
-            subset_di = {'categories': categories, 'images': images_li, 'annotations': annotations_li}
+            subset_di = {'categories': categories, 'videos': videos_li, 'images': images_li, 'annotations': annotations_li}
             json.dump(subset_di, stream, indent=2)

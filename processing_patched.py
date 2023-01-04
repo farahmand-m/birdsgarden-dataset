@@ -134,7 +134,10 @@ class Video:
                                     # Make sure it is within current patch.
                                     left, top = left - x_min, top - y_min
                                     right, bottom = right - x_min, bottom - y_min
-                                    if not ((left > 0 and top > 0) or (right > 0 and bottom > 0)):
+                                    if not (
+                                            (0 <= left < self.p_width and 0 <= top < self.p_height) and
+                                            (0 <= right < self.p_width and 0 <= bottom < self.p_height)
+                                    ):
                                         continue  # Neither the top-left-most nor the right-bottom-most pixel are within the patch.
                                     width, height = right - left, bottom - top
                                     bounding_box = left, top, width, height

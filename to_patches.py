@@ -30,6 +30,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-dir', default='dataset', help='path to directory containing raw_data')
     parser.add_argument('--patch-size', nargs=2, type=int, default=(640, 480), help='desired patch size')
+    parser.add_argument('--target-videos', default=None, help='if set, only videos containing the word are processed')
     args = parser.parse_args()
 
     data_dir = pathlib.Path(args.data_dir)
@@ -44,6 +45,10 @@ if __name__ == '__main__':
     for subset, videos in directories.items():
 
         for video in videos:
+
+            if args.target_videos is not None:
+                if args.target_videos not in video:
+                    continue
 
             filepath = source_dir / subset / video / 'video.mp4'
             capture = cv2.VideoCapture(str(filepath))

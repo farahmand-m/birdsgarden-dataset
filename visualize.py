@@ -27,6 +27,9 @@ if __name__ == '__main__':
     filepath = os.path.join('pred', 'pred.txt') if args.predictions else os.path.join('gt', 'gt.txt')
     annotations = pd.read_csv(args.video_dir / filepath, names=columns, header=None)
 
+    for column in annotations.columns:
+        annotations[column] = annotations[column].astype(int)
+
     output_path = str(args.video_dir / ('predicted.mp4' if args.predictions else 'annotated.mp4'))
     encoding = cv2.VideoWriter_fourcc(*'mp4v')
     frame_rate = round(float(sequence['FrameRate']))

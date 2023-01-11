@@ -23,6 +23,7 @@ class Video:
         self.source_dir = source_dir
         self.target_dir = target_dir
         self.destination = destination
+        self.labels_only = args.labels_only
         self.relative_frame_id = args.relative_frame_id
         self.load_video(source_dir / self.video_filename)
         self.load_bounds(source_dir / self.bounds_filename)
@@ -94,7 +95,8 @@ class Video:
                 if (frame_index - 1) % (self.args.skip_frames + 1) == 0:
                     frame_filename = frame_count if self.relative_frame_id else frame_index
                     output_filepath = output_dir / f'{frame_filename:06d}{self.images_extension}'
-                    cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
+                    if not self.labels_only:
+                        cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
                     image_id = image_id_offset + frame_count
                     di = {'id': image_id,
                           'video_id': video_id,
@@ -178,6 +180,7 @@ if __name__ == '__main__':
     parser.add_argument('--relative-frame-id', action='store_true', help='when set, filenames will be relative frame ids')
     parser.add_argument('--quality', type=int, default=100, help='level of quality when saving JPEG images')
     parser.add_argument('--patch-size', nargs=2, type=int, default=(640, 480), help='desired patch size')
+    parser.add_argument('--labels-only', action='store_true', help='when set, will not save images')
     args = parser.parse_args()
 
     data_dir = pathlib.Path(args.data_dir)

@@ -22,6 +22,7 @@ class Video:
         self.source_dir = source_dir
         self.target_dir = target_dir
         self.destination = destination
+        self.labels_only = args.labels_only
         self.load_video(source_dir / self.video_filename)
         self.load_annotations(source_dir / self.annotations_filename)
 
@@ -91,7 +92,8 @@ class Video:
                     if self.ratio < 1:
                         frame = cv2.resize(frame, self.target_size)
                     output_filepath = output_dir / f'{frame_id:06d}{self.images_extension}'
-                    cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
+                    if not self.labels_only:
+                        cv2.imwrite(str(output_filepath), frame, [cv2.IMWRITE_JPEG_QUALITY, self.args.quality])
                     image_id = image_id_offset + frame_count
                     di = {'id': image_id,
                           'video_id': video_id,
@@ -164,6 +166,7 @@ if __name__ == '__main__':
     parser.add_argument('--max-width', type=int, default=1920, help='maximum width of images')
     parser.add_argument('--skip-frames', type=int, default=8, help='number of frames to skip between images')
     parser.add_argument('--quality', type=int, default=90, help='level of quality when saving JPEG images')
+    parser.add_argument('--labels-only', action='store_true', help='when set, will not save images')
     args = parser.parse_args()
 
     data_dir = pathlib.Path(args.data_dir)

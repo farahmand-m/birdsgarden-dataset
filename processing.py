@@ -98,8 +98,9 @@ class Video:
                     di = {'id': image_id,
                           'video_id': video_id,
                           'frame_id': frame_count,
-                          'file_name': str(output_filepath.relative_to(self.target_dir.parent)),
-                          'width': self.target_width, 'height': self.target_height}
+                          'width': self.target_width, 'height': self.target_height,
+                          'seq_length': self.num_frames, 'first_frame_image_id': image_id_offset + 1,
+                          'file_name': str(output_filepath.relative_to(self.target_dir.parent))}
                     self.image_ids[frame_id] = image_id
                     frames.append(di)
                     frame_count += 1
